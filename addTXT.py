@@ -1,7 +1,6 @@
 import logging
 from typing import Callable
 from typing import Mapping
-from typing import cast
 logger = logging.getLogger(__name__)
 
 import abc
