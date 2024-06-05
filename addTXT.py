@@ -719,7 +719,14 @@ class Authenticator(DNSAuthenticator):
     def getExistingAcmeRecord(self, endpoint, validation_name, headers):
         response = requests.get(endpoint, headers=headers)
         jsonResponse = getJsonResponse(response)
-        for record in jsonResponse['data']:
+
+        # Access list of PowerDNS entries
+        if self.accessors:
+            for accessor in self.accessors:
+                jsonResponse = jsonResponse[accessor]
+
+        # Look for matching TXT entry (i.e name == '_acme-challenge.DOMAIN_NAME')
+        for record in jsonResponse:
             if record['type'] == 'TXT' and record['name'] == validation_name:
                 return record
         return None
@@ -766,10 +773,14 @@ class Authenticator(DNSAuthenticator):
             'RFC 2136 credentials INI file',
             {
                 'secret': 'DNS manipuation API endpoint',
-                'server': 'Authentication token for API endpoint'
+                'server': 'Authentication token for API endpoint',
+                'getAccess': 'JSON path to list of entries in GET response, e.g. foo.bar.data',
             },
             self._validate_credentials
         )
+        getAccess = self.credentials.conf('getAccess')
+        if getAccess:
+            self.accessors = getAccess.split('.')
 
     def _perform(self, _domain: str, validation_name: str, validation: str) -> None:
         endpoint = self.credentials.conf('server')
